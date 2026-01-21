@@ -4,12 +4,14 @@
   "description": "Real-Time Collaborative Drawing Canvas with Global Undo/Redo",
   "main": "server/server.ts",
   "scripts": {
-    "start": "npm run dev",
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
-    "server:dev": "ts-node server/server.ts",
-    "client:dev": "vite",
+    "start": "node dist/server/server.js",
     "build": "tsc && vite build",
-    "serve": "node dist/server/server.js"
+    "server:dev": "ts-node server/server.ts",
+    "client:dev": "vite"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   },
   "keywords": [
     "canvas",
@@ -22,15 +24,16 @@
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2",
+    "socket.io-client": "^4.8.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.5",
     "@types/uuid": "^9.0.7",
+    "concurrently": "^8.2.2",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "concurrently": "^8.2.2"
+    "typescript": "^5.3.3"
   }
 }
