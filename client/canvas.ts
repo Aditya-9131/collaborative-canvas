@@ -326,4 +326,8 @@ export class CollaborativeCanvas {
         link.href = this.offscreenCanvas.toDataURL(); // Use offscreen to avoid cursors/ui
         link.click();
     }
+
+    public clear() {
+        this.ws.emit('clear_canvas', {});
+    }
 }
