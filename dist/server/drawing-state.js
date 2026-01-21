@@ -58,6 +58,17 @@ class DrawingState {
         }
         this.undoMap.get(targetId).add(op.id);
     }
+    addClearOperation(userId) {
+        const op = {
+            id: (0, uuid_1.v4)(),
+            type: 'CLEAR',
+            userId,
+            timestamp: Date.now(),
+            data: {}
+        };
+        this.addOperation(op);
+        return op;
+    }
     getHistory() {
         return this.operations;
     }

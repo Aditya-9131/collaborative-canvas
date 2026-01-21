@@ -18,7 +18,10 @@ const io = new socket_io_1.Server(server, {
 });
 const roomManager = new rooms_1.RoomManager();
 // Serve static client files
-app.use(express_1.default.static(path_1.default.join(__dirname, '../client')));
+const staticPath = process.env.NODE_ENV === 'production'
+    ? path_1.default.join(__dirname, 'public')
+    : path_1.default.join(__dirname, '../client');
+app.use(express_1.default.static(staticPath));
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
     let currentRoomId = 'default-room'; // Single room for now, can be dynamic
@@ -61,6 +64,12 @@ io.on('connection', (socket) => {
             io.to(currentRoomId).emit('operation_committed', op);
             io.to(currentRoomId).emit('undo_committed', op.data.targetOperationId);
         }
+    });
+    // Clear Event
+    socket.on('clear_canvas', () => {
+        const room = roomManager.getRoom(currentRoomId);
+        const op = room.drawingState.addClearOperation(socket.id);
+        io.to(currentRoomId).emit('operation_committed', op);
     });
     // Live Cursor / Stroke Streaming
     socket.on('cursor_move', (pos) => {

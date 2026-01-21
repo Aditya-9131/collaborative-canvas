@@ -18,6 +18,8 @@ class CollaborativeCanvas {
         this.liveStrokes = new Map();
         this.isDirty = true; // Signals that offscreen needs update
         this.lastPointSentTime = 0;
+        this.pendingPoints = [];
+        this.batchInterval = null;
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d', { alpha: false });
         this.ws = ws;
@@ -66,6 +68,7 @@ class CollaborativeCanvas {
     }
     moveStroke(e) {
         const p = this.getPoint(e);
+        // Cursors: Throttle specific updates (30ms rate limit)
         const now = Date.now();
         if (now - this.lastPointSentTime > 30) {
             this.ws.emit('cursor_move', p);
@@ -74,13 +77,35 @@ class CollaborativeCanvas {
         if (!this.isDrawing)
             return;
         this.currentStroke.push(p);
-        // Emit live stroke part
-        this.ws.emit('live_stroke', { points: [p], color: this.currentColor, size: this.currentSize });
+        this.pendingPoints.push(p);
+        // Optimization: Batch network packets
+        // Instead of emitting on every pixel, we wait for requestAnimationFrame or a small timer
+        if (!this.batchInterval) {
+            this.batchInterval = setTimeout(() => this.flushPendingPoints(), 16); // ~60fps sync rate
+        }
+    }
+    flushPendingPoints() {
+        if (this.pendingPoints.length > 0) {
+            this.ws.emit('live_stroke', {
+                points: this.pendingPoints,
+                color: this.currentColor,
+                size: this.currentSize
+            });
+            this.pendingPoints = [];
+        }
+        this.batchInterval = null;
     }
     endStroke() {
         if (!this.isDrawing)
             return;
         this.isDrawing = false;
+        // clear any pending batch
+        if (this.batchInterval) {
+            clearTimeout(this.batchInterval);
+            this.batchInterval = null;
+        }
+        // Send remainder
+        this.flushPendingPoints();
         if (this.currentStroke.length > 0) {
             this.ws.emit('draw_stroke', {
                 points: this.currentStroke, // Full stroke for reliability
@@ -174,7 +199,13 @@ class CollaborativeCanvas {
         this.offscreenCtx.fillRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
         // Draw all operations
         this.operations.forEach(op => {
-            if (op.type === 'DRAW') {
+            if (op.type === 'CLEAR') {
+                this.offscreenCtx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+                // Also refill white background
+                this.offscreenCtx.fillStyle = '#ffffff';
+                this.offscreenCtx.fillRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+            }
+            else if (op.type === 'DRAW') {
                 if (this.undoMap.has(op.id))
                     return; // Skip undone
                 this.drawStrokeToContext(this.offscreenCtx, op.data.points, op.data.color, op.data.size, op.data.tool);
@@ -189,11 +220,20 @@ class CollaborativeCanvas {
         ctx.lineWidth = size;
         ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
         ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) {
-            ctx.lineTo(points[i].x, points[i].y);
+        if (tool === 'rectangle') {
+            const start = points[0];
+            const end = points[points.length - 1];
+            const w = end.x - start.x;
+            const h = end.y - start.y;
+            ctx.strokeRect(start.x, start.y, w, h);
         }
-        ctx.stroke();
+        else {
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+        }
     }
     drawCursor(pos, userId) {
         const color = this.otherUserColors.get(userId) || '#000';
@@ -209,5 +249,15 @@ class CollaborativeCanvas {
     setSize(size) { this.currentSize = size; }
     setTool(tool) { this.currentTool = tool; }
     triggerUndo() { this.ws.emit('undo', {}); }
+    download() {
+        // Render everything to offscreen first to ensure clean state
+        if (this.isDirty)
+            this.updateOffscreenBuffer();
+        // Create a temporary link
+        const link = document.createElement('a');
+        link.download = `canvas-${Date.now()}.png`;
+        link.href = this.offscreenCanvas.toDataURL(); // Use offscreen to avoid cursors/ui
+        link.click();
+    }
 }
 exports.CollaborativeCanvas = CollaborativeCanvas;
