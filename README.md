@@ -31,7 +31,7 @@ A high-performance, WebSocket-based collaborative collaborative canvas featuring
     ```
     Accesible at [http://localhost:3000](http://localhost:3000)
 
-## 🧪 Testing Instructions
+## 🧪 Multi-User Testing Instructions
 
 1.  Open **Two Browser Windows** (Incognito recommended for separate sessions if testing stateless auth, though socket.io handles IDs separately anyway).
 2.  **Draw** in Window A. Observe immediate streaming in Window B.

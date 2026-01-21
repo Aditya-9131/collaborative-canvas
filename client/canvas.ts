@@ -9,8 +9,10 @@ interface Stroke {
     points: Point[];
     color: string;
     size: number;
-    tool: 'brush' | 'eraser';
+    tool: 'brush' | 'eraser' | 'rectangle';
 }
+
+
 
 export class CollaborativeCanvas {
     private canvas: HTMLCanvasElement;
@@ -22,7 +24,7 @@ export class CollaborativeCanvas {
     private currentStroke: Point[] = [];
     private currentColor = '#000000';
     private currentSize = 5;
-    private currentTool: 'brush' | 'eraser' = 'brush';
+    private currentTool: 'brush' | 'eraser' | 'rectangle' = 'brush';
 
     // History (Authoritative)
     private operations: any[] = [];
@@ -98,10 +100,13 @@ export class CollaborativeCanvas {
     }
 
     private lastPointSentTime = 0;
+    private pendingPoints: Point[] = [];
+    private batchInterval: any = null;
 
     private moveStroke(e: PointerEvent) {
         const p = this.getPoint(e);
 
+        // Cursors: Throttle specific updates (30ms rate limit)
         const now = Date.now();
         if (now - this.lastPointSentTime > 30) {
             this.ws.emit('cursor_move', p);
@@ -111,14 +116,38 @@ export class CollaborativeCanvas {
         if (!this.isDrawing) return;
 
         this.currentStroke.push(p);
+        this.pendingPoints.push(p);
 
-        // Emit live stroke part
-        this.ws.emit('live_stroke', { points: [p], color: this.currentColor, size: this.currentSize });
+        // Optimization: Batch network packets
+        // Instead of emitting on every pixel, we wait for requestAnimationFrame or a small timer
+        if (!this.batchInterval) {
+            this.batchInterval = setTimeout(() => this.flushPendingPoints(), 16); // ~60fps sync rate
+        }
+    }
+
+    private flushPendingPoints() {
+        if (this.pendingPoints.length > 0) {
+            this.ws.emit('live_stroke', {
+                points: this.pendingPoints,
+                color: this.currentColor,
+                size: this.currentSize
+            });
+            this.pendingPoints = [];
+        }
+        this.batchInterval = null;
     }
 
     private endStroke() {
         if (!this.isDrawing) return;
         this.isDrawing = false;
+
+        // clear any pending batch
+        if (this.batchInterval) {
+            clearTimeout(this.batchInterval);
+            this.batchInterval = null;
+        }
+        // Send remainder
+        this.flushPendingPoints();
 
         if (this.currentStroke.length > 0) {
             this.ws.emit('draw_stroke', {
@@ -233,7 +262,12 @@ export class CollaborativeCanvas {
 
         // Draw all operations
         this.operations.forEach(op => {
-            if (op.type === 'DRAW') {
+            if (op.type === 'CLEAR') {
+                this.offscreenCtx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+                // Also refill white background
+                this.offscreenCtx.fillStyle = '#ffffff';
+                this.offscreenCtx.fillRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+            } else if (op.type === 'DRAW') {
                 if (this.undoMap.has(op.id)) return; // Skip undone
                 this.drawStrokeToContext(this.offscreenCtx, op.data.points, op.data.color, op.data.size, op.data.tool);
             }
@@ -249,11 +283,20 @@ export class CollaborativeCanvas {
         ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
 
         ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) {
-            ctx.lineTo(points[i].x, points[i].y);
+
+        if (tool === 'rectangle') {
+            const start = points[0];
+            const end = points[points.length - 1];
+            const w = end.x - start.x;
+            const h = end.y - start.y;
+            ctx.strokeRect(start.x, start.y, w, h);
+        } else {
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
         }
-        ctx.stroke();
     }
 
     private drawCursor(pos: Point, userId: string) {
@@ -270,6 +313,17 @@ export class CollaborativeCanvas {
     // --- Public API ---
     public setColor(color: string) { this.currentColor = color; }
     public setSize(size: number) { this.currentSize = size; }
-    public setTool(tool: 'brush' | 'eraser') { this.currentTool = tool; }
+    public setTool(tool: 'brush' | 'eraser' | 'rectangle') { this.currentTool = tool; }
     public triggerUndo() { this.ws.emit('undo', {}); }
+
+    public download() {
+        // Render everything to offscreen first to ensure clean state
+        if (this.isDirty) this.updateOffscreenBuffer();
+
+        // Create a temporary link
+        const link = document.createElement('a');
+        link.download = `canvas-${Date.now()}.png`;
+        link.href = this.offscreenCanvas.toDataURL(); // Use offscreen to avoid cursors/ui
+        link.click();
+    }
 }

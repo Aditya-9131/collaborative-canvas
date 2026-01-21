@@ -6,7 +6,7 @@ export interface Point {
     pressure?: number;
 }
 
-export type OperationType = 'DRAW' | 'UNDO';
+export type OperationType = 'DRAW' | 'UNDO' | 'CLEAR';
 
 export interface Operation {
     id: string;
@@ -31,6 +31,11 @@ export interface UndoOperation extends Operation {
     data: {
         targetOperationId: string;
     };
+}
+
+export interface ClearOperation extends Operation {
+    type: 'CLEAR';
+    data: {};
 }
 
 export class DrawingState {
@@ -96,6 +101,18 @@ export class DrawingState {
             this.undoMap.set(targetId, new Set());
         }
         this.undoMap.get(targetId)!.add(op.id);
+    }
+
+    public addClearOperation(userId: string): ClearOperation {
+        const op: ClearOperation = {
+            id: uuidv4(),
+            type: 'CLEAR',
+            userId,
+            timestamp: Date.now(),
+            data: {}
+        };
+        this.addOperation(op);
+        return op;
     }
 
     public getHistory(): Operation[] {

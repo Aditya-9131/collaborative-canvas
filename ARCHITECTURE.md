@@ -49,11 +49,11 @@ graph TD
     ClientStoreA -->|9. Move from Temp to Main| CanvasA
 ```
 
-## Protocol (WebSocket Events)
+## WebSocket Protocol (Message Schemas)
 
 ### Client -> Server
 1.  `join_room(roomId: string)`
-2.  `draw_point(data: PointData)` - Streaming points (Live)
+2.  `draw_point(data: PointData)` - Streaming points (Live/Batched)
 3.  `draw_end(data: StrokeData)` - Finalizing a stroke
 4.  `undo()` - Request global undo of self/last action
 

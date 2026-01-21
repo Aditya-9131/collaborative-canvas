@@ -41,7 +41,7 @@ canvas {
 
 .toolbar {
     position: absolute;
-    bottom: 30px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: white;
@@ -52,6 +52,44 @@ canvas {
     align-items: center;
     gap: 15px;
     pointer-events: auto;
+}
+
+/* ... */
+
+#status-bar {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: auto;
+    display: flex;
+    gap: 10px;
+}
+
+.color-palette {
+    display: flex;
+    gap: 8px;
+    margin-right: 5px;
+}
+
+.color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px #ddd;
+    cursor: pointer;
+    transition: transform 0.1s;
+    padding: 0 !important;
+    /* Override default button padding */
+}
+
+.color-swatch:hover {
+    transform: scale(1.2);
+    z-index: 10;
 }
 
 .toolbar button {
@@ -74,6 +112,25 @@ canvas {
     color: white;
 }
 
+.rgb-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.slider-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.slider-group input {
+    width: 60px;
+    cursor: pointer;
+}
+
 .separator {
     width: 1px;
     height: 20px;
@@ -91,4 +148,42 @@ canvas {
     pointer-events: auto;
     display: flex;
     gap: 10px;
+}
+
+/* Toasts */
+#toast-container {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.toast {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: fade-in 0.3s forwards;
+}
+
+@keyframes fade-in {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-out {
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
 }

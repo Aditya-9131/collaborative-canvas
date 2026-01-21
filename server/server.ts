@@ -78,6 +78,13 @@ io.on('connection', (socket: Socket) => {
         }
     });
 
+    // Clear Event
+    socket.on('clear_canvas', () => {
+        const room = roomManager.getRoom(currentRoomId);
+        const op = room.drawingState.addClearOperation(socket.id);
+        io.to(currentRoomId).emit('operation_committed', op);
+    });
+
     // Live Cursor / Stroke Streaming
     socket.on('cursor_move', (pos: { x: number, y: number }) => {
         const room = roomManager.getRoom(currentRoomId);
