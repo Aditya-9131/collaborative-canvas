@@ -1,0 +1,94 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body,
+html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #f0f0f0;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    cursor: crosshair;
+    background-color: white;
+    touch-action: none;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.toolbar {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 10px 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    pointer-events: auto;
+}
+
+.toolbar button {
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+
+.toolbar button:hover {
+    background-color: #f5f5f5;
+}
+
+.toolbar button.active {
+    background-color: #000;
+    color: white;
+}
+
+.separator {
+    width: 1px;
+    height: 20px;
+    background-color: #ddd;
+}
+
+#status-bar {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: auto;
+    display: flex;
+    gap: 10px;
+}
