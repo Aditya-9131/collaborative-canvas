@@ -19,7 +19,22 @@ const roomManager = new RoomManager();
 const staticPath = process.env.NODE_ENV === 'production'
     ? path.join(__dirname, 'public')
     : path.join(__dirname, '../client');
+
+console.log(`Serving static files from: ${staticPath}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
 app.use(express.static(staticPath));
+
+// Fallback to index.html for client-side routing
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/socket.io')) {
+        return next();
+    }
+    const indexPath = process.env.NODE_ENV === 'production'
+        ? path.join(__dirname, 'public', 'index.html')
+        : path.join(__dirname, '../client', 'index.html');
+    res.sendFile(indexPath);
+});
 
 io.on('connection', (socket: Socket) => {
     console.log('User connected:', socket.id);

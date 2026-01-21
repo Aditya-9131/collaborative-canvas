@@ -21,7 +21,19 @@ const roomManager = new rooms_1.RoomManager();
 const staticPath = process.env.NODE_ENV === 'production'
     ? path_1.default.join(__dirname, 'public')
     : path_1.default.join(__dirname, '../client');
+console.log(`Serving static files from: ${staticPath}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 app.use(express_1.default.static(staticPath));
+// Fallback to index.html for client-side routing
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/socket.io')) {
+        return next();
+    }
+    const indexPath = process.env.NODE_ENV === 'production'
+        ? path_1.default.join(__dirname, 'public', 'index.html')
+        : path_1.default.join(__dirname, '../client', 'index.html');
+    res.sendFile(indexPath);
+});
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
     let currentRoomId = 'default-room'; // Single room for now, can be dynamic
