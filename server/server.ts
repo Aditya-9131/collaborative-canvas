@@ -16,7 +16,10 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 
 // Serve static client files
-app.use(express.static(path.join(__dirname, '../client')));
+const staticPath = process.env.NODE_ENV === 'production'
+    ? path.join(__dirname, 'public')
+    : path.join(__dirname, '../client');
+app.use(express.static(staticPath));
 
 io.on('connection', (socket: Socket) => {
     console.log('User connected:', socket.id);
