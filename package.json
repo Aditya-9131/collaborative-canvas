@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
     "start": "node dist/server/server.js",
-    "build": "tsc && npx vite build && npm run copy-client",
+    "build": "tsc && node node_modules/vite/bin/vite.js build && npm run copy-client",
     "copy-client": "node -e \"require('fs').cpSync('dist/client', 'dist/server/public', {recursive: true})\"",
     "server:dev": "ts-node server/server.ts",
     "client:dev": "vite"
